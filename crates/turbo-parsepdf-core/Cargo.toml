@@ -28,6 +28,7 @@ encrypt = ["dep:aes", "dep:cbc", "dep:md-5", "dep:sha2"]
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
+memchr = "2"
 
 # Crypto for the optional `encrypt` feature only (vetted RustCrypto crates). All
 # optional, so a default build links none of them. RC4 is hand-rolled (RustCrypto

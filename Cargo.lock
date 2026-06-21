@@ -898,6 +898,7 @@ dependencies = [
  "cbc",
  "criterion",
  "md-5",
+ "memchr",
  "serde",
  "serde_json",
  "sha2",

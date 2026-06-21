@@ -76,39 +76,53 @@ fn bad_name() -> TurboParsePdfError {
 }
 
 /// Parse a literal string `(...)` with balanced parens and backslash escapes.
+/// `memchr3` bulk-copies the runs between the special bytes (`(` `)` `\`), so the
+/// common case (escape-free text) is a memchr + `extend_from_slice` per run
+/// rather than a push per byte.
 fn parse_literal_string(lx: &mut Lexer) -> Result<Object> {
     lx.bump(); // consume '('
     let mut out = Vec::new();
     let mut depth = 1usize;
-    while let Some(b) = lx.bump() {
-        match b {
-            b'\\' => handle_escape(lx, &mut out)?,
-            b'(' => string_open_paren(&mut out, &mut depth),
-            b')' => {
-                if string_close_paren(&mut out, &mut depth) {
-                    return Ok(Object::String(out));
-                }
-            }
-            _ => out.push(b),
+    loop {
+        let special = scan_literal_chunk(lx, &mut out)?;
+        if handle_literal_byte(lx, &mut out, &mut depth, special)? {
+            return Ok(Object::String(out));
         }
     }
-    Err(eof())
 }
 
-/// `(` inside a string: increase nesting and keep the literal byte.
-fn string_open_paren(out: &mut Vec<u8>, depth: &mut usize) {
-    *depth += 1;
-    out.push(b'(');
+/// Copy the clean run up to the next `(` / `)` / `\`, consume that byte, return it.
+fn scan_literal_chunk(lx: &mut Lexer, out: &mut Vec<u8>) -> Result<u8> {
+    let start = lx.pos();
+    let rest = &lx.data()[start..];
+    let i = memchr::memchr3(b'(', b')', b'\\', rest).ok_or_else(eof)?;
+    out.extend_from_slice(&rest[..i]);
+    lx.seek(start + i + 1);
+    Ok(rest[i])
 }
 
-/// `)` inside a string: decrease nesting, keeping the literal byte for an inner
-/// paren. Returns true only for the outermost `)`, which closes the string.
-fn string_close_paren(out: &mut Vec<u8>, depth: &mut usize) -> bool {
-    *depth -= 1;
-    if *depth > 0 {
-        out.push(b')');
+/// Act on a literal-string special byte. Returns true when the string closed.
+fn handle_literal_byte(
+    lx: &mut Lexer,
+    out: &mut Vec<u8>,
+    depth: &mut usize,
+    b: u8,
+) -> Result<bool> {
+    if b == b'\\' {
+        handle_escape(lx, out)?;
+        return Ok(false);
     }
-    *depth == 0
+    if b == b'(' {
+        *depth += 1;
+        out.push(b'(');
+        return Ok(false);
+    }
+    *depth -= 1; // b == b')'
+    if *depth == 0 {
+        return Ok(true);
+    }
+    out.push(b')');
+    Ok(false)
 }
 
 /// Decode one backslash escape inside a literal string.
