@@ -41,6 +41,7 @@ for the architecture, the benchmark runbook, and design rationale.
 ```sh
 python3 benches/gen-corpus.py                 # generate the corpus
 cargo run --release --example timeit -- benches/competitive/corpus/large.pdf
-( cd benches/competitive   && npm install && node bench.mjs )   # vs pdf.js
+( cd benches/competitive    && npm install && node bench.mjs )  # vs pdf.js
 ( cd benches/competitive-py && python bench.py )                # vs pypdf/pdfminer/PyMuPDF
+( cd benches/parse-native   && cargo run --release )            # vs pdf-extract / lopdf (Rust)
 ```

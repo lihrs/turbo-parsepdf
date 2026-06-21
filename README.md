@@ -36,6 +36,10 @@ builds). Reproduce with `python3 benches/gen-corpus.py` then the harnesses in
 | 20 pages | **0.92 ms** | 8.3 ms · **9.0×** | 80 ms | 103 ms | 419 ms |
 | 2 pages | **0.05 ms** | — | 2.6 ms | 4.0 ms | 18 ms |
 
+Against the Rust stack ([`benches/parse-native`](benches/parse-native/README.md)),
+turbo-parsepdf is **~59× faster than `pdf-extract`** (the common Rust text
+extractor) on the same 100-page document — 4.7 ms vs 275 ms.
+
 **Accuracy:** on the corpus, turbo-parsepdf's extracted text is **identical to
 PyMuPDF** (same character count, 100% word recall) — it is fast *and* correct,
 not fast by cutting corners.
