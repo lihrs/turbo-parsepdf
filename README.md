@@ -104,14 +104,47 @@ await init();
 const doc = parse(new Uint8Array(buffer));
 ```
 
-### CLI / MCP
+### CLI
 
 ```sh
 cargo run --release --example extract -- doc.pdf markdown   # text | md | html | json
 ```
 
-An MCP server (`turbo-parsepdf-mcp`) exposes `parse_pdf`, `inspect_pdf`,
-`extract_tables`, and `extract_images` over stdio JSON-RPC — see
+### MCP server (use it in Claude)
+
+`turbo-parsepdf-mcp` is a stdio JSON-RPC MCP server exposing four tools:
+`parse_pdf` (text/markdown/html/json), `inspect_pdf` (version, page geometry,
+metadata, encryption), `extract_tables`, and `extract_images`. Each takes
+`{ "path": "<file.pdf>", "password"?: "<pw>" }`.
+
+Build the binary:
+
+```sh
+cargo build -p turbo-parsepdf-mcp --release
+# → target/release/turbo-parsepdf-mcp
+```
+
+**Claude Code** (CLI):
+
+```sh
+claude mcp add turbo-parsepdf -- /absolute/path/to/target/release/turbo-parsepdf-mcp
+```
+
+**Claude Desktop** — add to `claude_desktop_config.json`
+(macOS: `~/Library/Application Support/Claude/`, Windows: `%APPDATA%\Claude\`):
+
+```jsonc
+{
+  "mcpServers": {
+    "turbo-parsepdf": {
+      "command": "/absolute/path/to/target/release/turbo-parsepdf-mcp"
+    }
+  }
+}
+```
+
+Restart Claude, then ask it to e.g. *"use turbo-parsepdf to extract the tables
+from ~/invoice.pdf"*. Full protocol details:
 [`crates/turbo-parsepdf-mcp`](crates/turbo-parsepdf-mcp/README.md).
 
 ## Output

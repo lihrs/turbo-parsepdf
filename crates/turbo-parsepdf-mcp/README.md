@@ -10,8 +10,27 @@ cargo build -p turbo-parsepdf-mcp --release
 ./target/release/turbo-parsepdf-mcp     # reads JSON-RPC from stdin, replies on stdout
 ```
 
-Register it with an MCP client by pointing the client at that binary as a stdio
-server.
+### Use it in Claude
+
+**Claude Code** (CLI):
+
+```sh
+claude mcp add turbo-parsepdf -- /absolute/path/to/target/release/turbo-parsepdf-mcp
+```
+
+**Claude Desktop** — add to `claude_desktop_config.json` (macOS:
+`~/Library/Application Support/Claude/`, Windows: `%APPDATA%\Claude\`), then
+restart Claude:
+
+```jsonc
+{
+  "mcpServers": {
+    "turbo-parsepdf": { "command": "/absolute/path/to/target/release/turbo-parsepdf-mcp" }
+  }
+}
+```
+
+Any other MCP client works too — point it at the binary as a stdio server.
 
 ## Tools
 
