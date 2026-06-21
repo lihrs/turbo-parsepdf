@@ -1,0 +1,48 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/miaskiewicz/turbo-parsepdf/schema/turbo-parsepdf.doc.schema.json",
+  "title": "turbo-parsepdf extracted document",
+  "description": "The JSON shape produced by Document::extract → ExtractedDoc::to_json.",
+  "type": "object",
+  "required": ["version", "pages"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "The PDF version from the file header (e.g. \"1.7\")."
+    },
+    "pages": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/page" }
+    }
+  },
+  "definitions": {
+    "page": {
+      "type": "object",
+      "required": ["width", "height", "lines", "needs_ocr"],
+      "additionalProperties": false,
+      "properties": {
+        "width": { "type": "number", "description": "Media-box width in PDF points." },
+        "height": { "type": "number", "description": "Media-box height in PDF points." },
+        "needs_ocr": {
+          "type": "boolean",
+          "description": "True when the page had no extractable text (likely scanned; OCR is out of scope)."
+        },
+        "lines": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/line" }
+        }
+      }
+    },
+    "line": {
+      "type": "object",
+      "required": ["text", "x", "y"],
+      "additionalProperties": false,
+      "properties": {
+        "text": { "type": "string", "description": "The reconstructed reading text of the line." },
+        "x": { "type": "number", "description": "Device-space x of the line origin." },
+        "y": { "type": "number", "description": "Device-space y of the line origin (PDF y grows upward)." }
+      }
+    }
+  }
+}

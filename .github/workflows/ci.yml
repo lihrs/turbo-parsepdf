@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: "-D warnings"
+
+jobs:
+  rust:
+    name: Rust (fmt, clippy, test, cc, coverage)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          # llvm-tools-preview backs tarpaulin's `Llvm` engine (pinned in
+          # tarpaulin.toml so Linux matches the host's source-based coverage).
+          components: rustfmt, clippy, llvm-tools-preview
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+      - name: Format
+        run: cargo fmt --all -- --check
+      - name: Clippy (default + encrypt)
+        run: |
+          cargo clippy --workspace --all-targets -- -D warnings
+          cargo clippy -p turbo-parsepdf-core --all-targets --features encrypt -- -D warnings
+      - name: Test (workspace + encrypt)
+        run: cargo test --workspace --features turbo-parsepdf-core/encrypt
+      - name: wasm target builds
+        run: cargo build -p turbo-parsepdf-wasm --target wasm32-unknown-unknown --release
+      - name: Complexity gate (cc < 6)
+        run: cargo run --manifest-path tools/cc-check/Cargo.toml -- --max 5 crates
+      - name: Coverage (100% gate)
+        run: |
+          cargo install cargo-tarpaulin --locked
+          cargo tarpaulin --out Xml   # excludes + features + fail-under from tarpaulin.toml
+
+  conformance:
+    name: Binding conformance (napi + py)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build napi addon
+        run: |
+          cargo build -p turbo-parsepdf-napi --release
+          node crates/turbo-parsepdf-napi/scripts/copy-addon.mjs
+      - name: napi conformance
+        run: node --test crates/turbo-parsepdf-napi/__test__/*.test.mjs
+      - name: Build + smoke-test python wheel
+        run: |
+          python -m pip install --upgrade pip maturin
+          ( cd crates/turbo-parsepdf-py && python -m venv .venv && . .venv/bin/activate \
+            && maturin develop --release \
+            && python -c "import turbo_parsepdf, pathlib; \
+                 d=pathlib.Path('../turbo-parsepdf-core/tests/fixtures/real.pdf').read_bytes(); \
+                 assert 'turbo-parsepdf' in turbo_parsepdf.parse_to_markdown(d)" )

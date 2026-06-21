@@ -1,0 +1,70 @@
+# ---- Rust ----
+/target
+**/target
+**/*.rs.bk
+*.pdb
+
+# ---- Node / npm ----
+node_modules/
+dist/
+build/
+*.tsbuildinfo
+pnpm-debug.log*
+npm-debug.log*
+
+# ---- N-API / native artifacts ----
+*.node
+artifacts/
+napi/
+index.generated.d.ts
+index.generated.js
+
+# ---- WASM (wasm-pack output) ----
+pkg/
+pkg-node/
+*.wasm
+
+# ---- Python / PyO3 (maturin) ----
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+*.egg-info/
+*.whl
+crates/turbo-parsepdf-py/python/turbo_parsepdf/*.so
+crates/turbo-parsepdf-py/python/turbo_parsepdf/*.pyd
+crates/turbo-parsepdf-py/python/turbo_parsepdf/*.dylib
+
+# ---- Benchmark output (machine-specific snapshots) ----
+benches/competitive/RESULTS.*.md
+benches/competitive-py/RESULTS.*.md
+benches/competitive-py/.venv/
+benches/competitive/.venv/
+/benches/**/results/
+# Generated corpus (reproduce with `python3 benches/gen-corpus.py`).
+benches/**/corpus/
+
+# ---- Coverage / test output ----
+/coverage
+tarpaulin-report.html
+tarpaulin-report.json
+cobertura.xml
+lcov.info
+*.profraw
+
+# ---- Editors / OS ----
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+*~
+
+# ---- Env / secrets ----
+.env
+.env.local
+.env.*.local
+
+# ---- Claude Code local state / agent worktrees ----
+.claude/

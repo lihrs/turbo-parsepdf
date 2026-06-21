@@ -1,0 +1,29 @@
+[package]
+name = "turbo-parsepdf-wasm"
+description = "PDF text/table/image extraction in the browser via WebAssembly — wasm-bindgen binding for turbo-parsepdf-core."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+
+# cdylib so `wasm-bindgen` / `wasm-pack` can produce the `.wasm` + JS glue. rlib
+# is kept so the crate type-checks and links on the host (scoped clippy / cc-check
+# without the wasm target).
+[lib]
+crate-type = ["cdylib", "rlib"]
+# Validated on the wasm32 target (and via the JS conformance harness), not host
+# `cargo test`.
+test = false
+doctest = false
+
+[dependencies]
+# `encrypt` always on: password-protected PDFs are read in the browser too.
+# Decryption uses no CSPRNG, so unlike turbo-xlsx no `getrandom` js backend is
+# needed.
+turbo-parsepdf-core = { path = "../turbo-parsepdf-core", features = ["encrypt"] }
+wasm-bindgen = "0.2"
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde-wasm-bindgen = "0.6"

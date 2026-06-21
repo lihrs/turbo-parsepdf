@@ -1,0 +1,71 @@
+# =============================================================================
+# Release (PyPI) — tag-gated maturin abi3 wheel publish for turbo-parsepdf.
+#
+# On a `pyv*` tag, builds stable-ABI (abi3-py38) wheels across platforms + an
+# sdist and publishes the `turbo-parsepdf` distribution (import name
+# `turbo_parsepdf`). Requires repository secret PYPI_TOKEN (publish self-skips
+# if unset). Mirrors the sibling turbo-xlsx PyPI runbook.
+# =============================================================================
+
+name: Release (PyPI)
+
+on:
+  push:
+    tags: ["pyv*"] # First tag: pyv0.1.0.
+
+permissions:
+  contents: read
+
+jobs:
+  wheels:
+    name: wheels ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Build wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          command: build
+          args: --release --manifest-path crates/turbo-parsepdf-py/Cargo.toml --out dist
+      - uses: actions/upload-artifact@v4
+        with: { name: "wheels-${{ matrix.os }}", path: dist }
+
+  sdist:
+    name: sdist
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build sdist
+        uses: PyO3/maturin-action@v1
+        with:
+          command: sdist
+          args: --manifest-path crates/turbo-parsepdf-py/Cargo.toml --out dist
+      - uses: actions/upload-artifact@v4
+        with: { name: "sdist", path: dist }
+
+  publish:
+    name: publish to PyPI
+    needs: [wheels, sdist]
+    runs-on: ubuntu-latest
+    if: ${{ github.repository_owner != '' }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { path: dist, merge-multiple: true }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: Publish (skips if PYPI_TOKEN unset)
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+        run: |
+          if [ -z "$TWINE_PASSWORD" ]; then echo "PYPI_TOKEN unset — skipping publish"; exit 0; fi
+          python -m pip install --upgrade twine
+          twine upload --skip-existing dist/*

@@ -1,0 +1,25 @@
+{
+  "name": "turbo-parsepdf-monorepo",
+  "private": true,
+  "version": "0.1.0",
+  "license": "MIT",
+  "packageManager": "pnpm@9.0.0",
+  "workspaces": ["crates/turbo-parsepdf-napi"],
+  "scripts": {
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
+    "check": "pnpm lint && pnpm format:check",
+    "napi:build": "cargo build -p turbo-parsepdf-napi --release && node crates/turbo-parsepdf-napi/scripts/copy-addon.mjs",
+    "napi:test": "node --test crates/turbo-parsepdf-napi/__test__/*.test.mjs",
+    "bench:node": "node benches/competitive/bench.mjs",
+    "corpus": "python3 benches/gen-corpus.py"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.0",
+    "@types/node": "^20.0.0",
+    "oxlint": "^0.11.0",
+    "typescript": "^5.6.0"
+  }
+}

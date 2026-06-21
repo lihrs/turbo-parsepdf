@@ -1,0 +1,49 @@
+[package]
+name = "turbo-parsepdf-core"
+description = "Native fast PDF text/table/image extraction (core crate): COS parser, content-stream interpreter, font/Unicode decode"
+readme = "README.md"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+
+# The cyclomatic-complexity gate (cc < 6) is enforced by `tools/cc-check`.
+
+[features]
+# Re-exports internal phase entry points (lex/inflate/xref/content/font) so the
+# hotspot harness can time each stage in isolation. OFF by default → not compiled
+# into the shipped library or the coverage build.
+bench-internals = []
+
+# Standard-security-handler decryption (RC4 + AES-128/256, R2–R6, user/empty
+# password). OFF by default — the base build stays dependency-free; turning it on
+# pulls the vetted RustCrypto stack below. Like the sibling turbo-xlsx `encrypt`,
+# the module is excluded from the 100% coverage gate (crypto is validated
+# functionally by round-trips against qpdf-encrypted fixtures).
+encrypt = ["dep:aes", "dep:cbc", "dep:md-5", "dep:sha2"]
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+
+# Crypto for the optional `encrypt` feature only (vetted RustCrypto crates). All
+# optional, so a default build links none of them. RC4 is hand-rolled (RustCrypto
+# dropped it as insecure, but PDFs still use it).
+aes = { version = "0.8", optional = true }
+cbc = { version = "0.1", features = ["alloc"], optional = true }
+md-5 = { version = "0.10", optional = true }
+sha2 = { version = "0.10", optional = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }
+criterion = "0.5"
+
+# Phase-by-phase hotspot profiler. Needs `bench-internals` to reach the internal
+# stage entry points. Run: `cargo bench --features bench-internals --bench hotspot`.
+[[bench]]
+name = "hotspot"
+harness = false
+required-features = ["bench-internals"]

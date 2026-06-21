@@ -1,0 +1,60 @@
+{
+  "name": "turbo-parsepdf",
+  "version": "0.1.0",
+  "description": "Fast native PDF text/table/image extraction for Node — pure-Rust core, HTML/Markdown/JSON output.",
+  "license": "MIT",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./index.js",
+      "require": "./index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "*.node",
+    "schema/*.json",
+    "build.rs",
+    "Cargo.toml",
+    "src/*.rs",
+    "LICENSE",
+    "README.md"
+  ],
+  "napi": {
+    "name": "turbo-parsepdf-napi",
+    "triples": {
+      "defaults": false,
+      "additional": [
+        "x86_64-unknown-linux-gnu",
+        "x86_64-unknown-linux-musl",
+        "aarch64-unknown-linux-gnu",
+        "aarch64-apple-darwin",
+        "x86_64-pc-windows-msvc"
+      ]
+    }
+  },
+  "scripts": {
+    "build": "napi build --platform --release --dts index.generated.d.ts --js index.generated.js",
+    "build:debug": "napi build --platform --dts index.generated.d.ts --js index.generated.js",
+    "build:cargo": "cargo build -p turbo-parsepdf-napi --release && node scripts/copy-addon.mjs",
+    "test": "node --test __test__/*.test.mjs"
+  },
+  "keywords": ["pdf", "extract", "text", "table", "ocr", "napi", "parse", "html", "markdown"],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/miaskiewicz/turbo-parsepdf.git"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "@napi-rs/cli": "^2.18.4"
+  }
+}

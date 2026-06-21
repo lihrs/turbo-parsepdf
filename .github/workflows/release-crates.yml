@@ -1,0 +1,35 @@
+# =============================================================================
+# Release (crates.io) — tag-gated publish of the pure-Rust core crate.
+#
+# On a `v*` tag, publishes `turbo-parsepdf-core` to crates.io. Gated on
+# CARGO_REGISTRY_TOKEN (publish self-skips if unset). The binding crates
+# (napi/py/wasm/mcp) ship to npm/PyPI via the other workflows, not crates.io.
+# =============================================================================
+
+name: Release (crates.io)
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: publish turbo-parsepdf-core
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Publish (skips if token unset)
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: |
+          if [ -z "$CARGO_REGISTRY_TOKEN" ]; then
+            echo "CARGO_REGISTRY_TOKEN unset — dry-run only"
+            cargo publish -p turbo-parsepdf-core --dry-run
+          else
+            cargo publish -p turbo-parsepdf-core
+          fi

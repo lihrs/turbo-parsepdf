@@ -1,0 +1,96 @@
+# =============================================================================
+# Release — tag-gated npm publish for the turbo-parsepdf packages.
+#
+# On a `v*` tag (first release: v0.1.0) publishes:
+#   1. turbo-parsepdf       — bundled napi package (every platform *.node inside).
+#   2. turbo-parsepdf-wasm  — the in-browser package (wasm-pack --target web).
+#
+# Unlike the sibling turbo-xlsx there is no base/parse variant axis: the parser
+# (and `encrypt`) is always on. Requires repository secret NPM_TOKEN.
+# =============================================================================
+
+name: Release
+
+on:
+  push:
+    tags: ["v*"] # tag-driven release. First tag: v0.1.0.
+
+permissions:
+  contents: read
+
+jobs:
+  build-napi:
+    name: build napi ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest, target: x86_64-unknown-linux-gnu }
+          - { os: ubuntu-latest, target: aarch64-unknown-linux-gnu }
+          - { os: macos-latest, target: aarch64-apple-darwin }
+          - { os: windows-latest, target: x86_64-pc-windows-msvc }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - name: Linux aarch64 cross toolchain
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: |
+          sudo apt-get update && sudo apt-get install -y gcc-aarch64-linux-gnu
+          echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc" >> "$GITHUB_ENV"
+      - uses: Swatinem/rust-cache@v2
+        with: { key: "${{ matrix.target }}" }
+      - name: Install @napi-rs/cli
+        working-directory: crates/turbo-parsepdf-napi
+        run: npm install
+      - name: Build native addon
+        working-directory: crates/turbo-parsepdf-napi
+        run: npx napi build --platform --release --target ${{ matrix.target }} --dts index.generated.d.ts --js index.generated.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: napi-${{ matrix.target }}
+          path: crates/turbo-parsepdf-napi/*.node
+          if-no-files-found: error
+
+  publish-npm:
+    name: publish turbo-parsepdf (npm)
+    needs: build-napi
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, registry-url: "https://registry.npmjs.org" }
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: napi-*
+          path: crates/turbo-parsepdf-napi
+          merge-multiple: true
+      - name: Publish bundled package
+        working-directory: crates/turbo-parsepdf-napi
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  publish-wasm:
+    name: publish turbo-parsepdf-wasm (npm)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, registry-url: "https://registry.npmjs.org" }
+      - uses: dtolnay/rust-toolchain@stable
+        with: { targets: wasm32-unknown-unknown }
+      - uses: Swatinem/rust-cache@v2
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+      - name: Build wasm package
+        run: wasm-pack build crates/turbo-parsepdf-wasm --release --target web --out-dir pkg
+      - name: Publish
+        working-directory: crates/turbo-parsepdf-wasm/pkg
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

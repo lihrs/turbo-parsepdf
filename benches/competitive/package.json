@@ -1,0 +1,13 @@
+{
+  "name": "turbo-parsepdf-competitive-bench",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Competitive perf harness: turbo-parsepdf vs pdf-parse (pdf.js).",
+  "scripts": {
+    "bench": "node bench.mjs"
+  },
+  "devDependencies": {
+    "pdf-parse": "^1.1.1"
+  }
+}

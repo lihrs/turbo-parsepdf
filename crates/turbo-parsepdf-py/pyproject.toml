@@ -1,0 +1,34 @@
+[build-system]
+requires = ["maturin>=1.5,<2.0"]
+build-backend = "maturin"
+
+[project]
+# PyPI import name stays `turbo_parsepdf`; the distribution is `turbo-parsepdf`.
+name = "turbo-parsepdf"
+version = "0.1.0"
+description = "Native fast PDF text/table/image extraction (PyO3 binding over the turbo-parsepdf Rust core)."
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "MIT" }
+authors = [{ name = "turbo-parsepdf contributors" }]
+keywords = ["pdf", "extract", "text", "table", "ocr", "rust"]
+classifiers = [
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Topic :: Text Processing",
+    "Topic :: Software Development :: Libraries",
+    "License :: OSI Approved :: MIT License",
+]
+
+[project.urls]
+Repository = "https://github.com/miaskiewicz/turbo-parsepdf"
+
+[project.optional-dependencies]
+test = ["pytest>=7"]
+
+[tool.maturin]
+manifest-path = "Cargo.toml"
+python-source = "python"
+module-name = "turbo_parsepdf._turbo_parsepdf"
+features = ["pyo3/extension-module"]

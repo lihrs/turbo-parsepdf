@@ -1,0 +1,30 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/turbo-parsepdf-core",
+    "crates/turbo-parsepdf-napi",
+    "crates/turbo-parsepdf-py",
+    "crates/turbo-parsepdf-wasm",
+    "crates/turbo-parsepdf-mcp",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/miaskiewicz/turbo-parsepdf"
+authors = ["turbo-parsepdf contributors"]
+# napi-build pins the real workspace MSRV floor (rust-version 1.88) once the
+# bindings land; the core crate itself only needs serde/serde_json. So 1.88 is
+# the true MSRV — same as the sibling turbo-xlsx / turbo-html2pdf workspaces.
+rust-version = "1.88"
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+thiserror = "2"
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1

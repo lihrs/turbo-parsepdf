@@ -1,0 +1,25 @@
+[package]
+name = "turbo-parsepdf-mcp"
+description = "turbo-parsepdf MCP server — native Rust, stdio JSON-RPC 2.0, PDF text/table/image extraction"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+
+# A library (the protocol surface, unit-testable on the host) plus the stdio
+# binary that pumps JSON-RPC over newline-delimited stdin/stdout.
+[lib]
+name = "turbo_parsepdf_mcp"
+path = "src/lib.rs"
+
+[[bin]]
+name = "turbo-parsepdf-mcp"
+path = "src/main.rs"
+
+[dependencies]
+# `encrypt` always on: the parse tool accepts an optional `password`.
+turbo-parsepdf-core = { path = "../turbo-parsepdf-core", features = ["encrypt"] }
+serde = { workspace = true }
+serde_json = { workspace = true }
