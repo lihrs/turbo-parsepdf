@@ -40,11 +40,20 @@ let extracted = Document::parse(&bytes)?.extract()?;
 println!("{}", extracted.to_markdown());
 ```
 
-## Performance
+## Performance vs the Rust PDF stack
 
-On a 100-page document the full `parse + extract` pipeline runs in ~5–6 ms —
-~9.7× faster than pdf.js, 38× pypdf, 62× PyMuPDF, 307× pdfminer — and the
-extracted text is byte-identical to PyMuPDF. See the workspace `benches/`.
+Best-of-N text extraction (Apple M-series, release). Reproduce:
+`cd benches/parse-native && cargo run --release` (after `python3 benches/gen-corpus.py`).
+
+| document | **turbo-parsepdf** | pdf-extract | lopdf (parse only) |
+|---|---|---|---|
+| 100 pages | **4.7 ms** | 275 ms · **59× faster** | 0.23 ms¹ |
+| 20 pages | **0.9 ms** | 52 ms · **59× faster** | 0.10 ms¹ |
+
+¹ `lopdf` only loads object structure (no text/font/layout extraction), so it is a
+floor, not a same-task competitor. Across ecosystems turbo is also ~9.7× faster
+than pdf.js and 38–307× faster than the Python stack (`benches/`); extracted text
+is byte-identical to PyMuPDF.
 
 ## Engineering gates
 

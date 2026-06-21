@@ -4,7 +4,21 @@ All notable changes to turbo-parsepdf are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/); the project uses semantic
 versioning across the workspace (one shared `X.Y.Z`).
 
-## [0.1.0] — unreleased
+## [0.1.1]
+
+### Performance
+
+- Literal-string parsing now bulk-copies the runs between `(`/`)`/`\` with
+  `memchr3` instead of pushing byte by byte — **~19% faster** full extract on a
+  100-page document (6.27 ms → 5.06 ms).
+
+### Added
+
+- `benches/parse-native`: a Rust-vs-Rust perf harness (turbo-parsepdf vs
+  `pdf-extract` / `lopdf`) — turbo is ~59x faster than `pdf-extract`.
+- Per-ecosystem benchmark tables in each package README.
+
+## [0.1.0]
 
 First release. A native PDF text/table/image extractor with HTML/Markdown/JSON
 output, shipped as a Rust crate plus N-API, PyO3, wasm, and MCP bindings.
@@ -41,4 +55,5 @@ output, shipped as a Rust crate plus N-API, PyO3, wasm, and MCP bindings.
 - OCR of scanned/image-only pages (flagged `needs_ocr`).
 - `.docx` output.
 
+[0.1.1]: https://github.com/miaskiewicz/turbo-parsepdf/releases/tag/v0.1.1
 [0.1.0]: https://github.com/miaskiewicz/turbo-parsepdf/releases/tag/v0.1.0

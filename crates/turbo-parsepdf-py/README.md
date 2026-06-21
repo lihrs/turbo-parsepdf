@@ -2,12 +2,25 @@
 
 Fast native **PDF text / table / image extraction** for Python — a pure-Rust core
 (PyO3, stable-ABI wheels). Imports as `turbo_parsepdf`. Output as a `dict`, or
-**HTML / Markdown / JSON** strings. **38× faster than pypdf, 62× faster than
-PyMuPDF, 307× faster than pdfminer**, with text byte-identical to PyMuPDF.
+**HTML / Markdown / JSON** strings.
 
 ```sh
 pip install turbo-parsepdf
 ```
+
+## Benchmark vs the Python PDF stack
+
+Wall-clock to extract every page's text, best-of-N (Apple M-series, release).
+Reproduce: `python benches/competitive-py/bench.py` (after `python3 benches/gen-corpus.py`).
+
+| document | **turbo-parsepdf** | pypdf | PyMuPDF (MuPDF, C) | pdfminer.six |
+|---|---|---|---|---|
+| 100 pages | **6.2 ms** | 237 ms · **38×** | 389 ms · **62×** | 1920 ms · **307×** |
+| 20 pages | **1.1 ms** | 80 ms | 103 ms | 419 ms |
+| 2 pages | **0.06 ms** | 2.6 ms | 4.0 ms | 18 ms |
+
+Even *including* the Python FFI + dict-marshaling overhead, turbo is 38–307×
+faster — and its text is **byte-identical to PyMuPDF** (100% word recall).
 
 ```python
 import turbo_parsepdf

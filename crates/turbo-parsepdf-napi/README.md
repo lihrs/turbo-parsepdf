@@ -2,11 +2,23 @@
 
 Fast native **PDF text / table / image extraction** for Node — a pure-Rust core
 (N-API). Output as a structured object, **HTML**, **Markdown**, or **JSON**.
-~9.7× faster than pdf.js, with text **byte-identical to PyMuPDF**.
 
 ```sh
 npm install turbo-parsepdf
 ```
+
+## Benchmark vs pdf.js
+
+Wall-clock to extract every page's text, best-of-N (Apple M-series, release).
+Reproduce: `node benches/competitive/bench.mjs` (after `python3 benches/gen-corpus.py`).
+
+| document | **turbo-parsepdf** | pdf.js (`pdf-parse`) |
+|---|---|---|
+| 100 pages | **5.6 ms** | 54 ms · **9.7× faster** |
+| 20 pages | **1.0 ms** | 8.3 ms · **8.3× faster** |
+
+Extracted text is **byte-identical to PyMuPDF** (100% word recall) — fast *and*
+correct.
 
 ```js
 import { parse, parseToMarkdown, parseToHtml, parseToJson } from "turbo-parsepdf";

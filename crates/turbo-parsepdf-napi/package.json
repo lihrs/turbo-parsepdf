@@ -1,6 +1,6 @@
 {
   "name": "turbo-parsepdf",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Fast native PDF text/table/image extraction for Node — pure-Rust core, HTML/Markdown/JSON output.",
   "license": "MIT",
   "main": "index.js",

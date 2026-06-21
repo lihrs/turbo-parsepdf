@@ -5,7 +5,7 @@ build-backend = "maturin"
 [project]
 # PyPI import name stays `turbo_parsepdf`; the distribution is `turbo-parsepdf`.
 name = "turbo-parsepdf"
-version = "0.1.0"
+version = "0.1.1"
 description = "Native fast PDF text/table/image extraction (PyO3 binding over the turbo-parsepdf Rust core)."
 readme = "README.md"
 requires-python = ">=3.8"

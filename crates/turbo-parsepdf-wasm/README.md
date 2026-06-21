@@ -8,6 +8,13 @@ JS object, or **HTML / Markdown / JSON** strings.
 npm install turbo-parsepdf-wasm
 ```
 
+## Benchmark
+
+Same engine as the native Node binding — **~9.7× faster than pdf.js** on a
+100-page document (5.6 ms vs 54 ms, best-of-N), text byte-identical to PyMuPDF.
+Browser numbers track native within WebAssembly overhead. Full tables + harness:
+the workspace [`benches/`](https://github.com/miaskiewicz/turbo-parsepdf/tree/main/benches).
+
 ```js
 import init, { parse, parseToMarkdown, parseToHtml, parseToJson } from "turbo-parsepdf-wasm";
 

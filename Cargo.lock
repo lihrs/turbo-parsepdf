@@ -892,7 +892,7 @@ dependencies = [
 
 [[package]]
 name = "turbo-parsepdf-core"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "aes",
  "cbc",
@@ -907,7 +907,7 @@ dependencies = [
 
 [[package]]
 name = "turbo-parsepdf-mcp"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "serde",
  "serde_json",
@@ -916,7 +916,7 @@ dependencies = [
 
 [[package]]
 name = "turbo-parsepdf-napi"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "mimalloc",
  "napi",
@@ -929,7 +929,7 @@ dependencies = [
 
 [[package]]
 name = "turbo-parsepdf-py"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "pyo3",
  "pythonize",
@@ -940,7 +940,7 @@ dependencies = [
 
 [[package]]
 name = "turbo-parsepdf-wasm"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "serde",
  "serde-wasm-bindgen",
