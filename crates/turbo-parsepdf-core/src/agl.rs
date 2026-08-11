@@ -116,7 +116,7 @@ pub(crate) const STANDARD: [u32; 256] = [
 ];
 
 #[rustfmt::skip]
-const AGL: [(&str, u32); 149] = [
+const AGL: [(&str, u32); 164] = [
     ("A", 0x0041), ("AE", 0x00C6), ("B", 0x0042), ("C", 0x0043), ("D", 0x0044),
     ("E", 0x0045), ("F", 0x0046), ("G", 0x0047), ("H", 0x0048), ("I", 0x0049),
     ("J", 0x004A), ("K", 0x004B), ("L", 0x004C), ("M", 0x004D), ("N", 0x004E),
@@ -131,26 +131,26 @@ const AGL: [(&str, u32); 149] = [
     ("colon", 0x003A), ("comma", 0x002C), ("copyright", 0x00A9), ("d", 0x0064),
     ("dagger", 0x2020), ("daggerdbl", 0x2021), ("degree", 0x00B0), ("divide", 0x00F7),
     ("dollar", 0x0024), ("e", 0x0065), ("eacute", 0x00E9), ("edieresis", 0x00EB),
-    ("egrave", 0x00E8), ("eight", 0x0038), ("ellipsis", 0x2026), ("emdash", 0x2014),
+    ("egrave", 0x00E8), ("eight", 0x0038), ("element", 0x2208), ("ellipsis", 0x2026), ("emdash", 0x2014),
     ("endash", 0x2013), ("equal", 0x003D), ("euro", 0x20AC), ("exclam", 0x0021),
     ("f", 0x0066), ("ff", 0xFB00), ("ffi", 0xFB03), ("ffl", 0xFB04), ("fi", 0xFB01),
-    ("five", 0x0035), ("fl", 0xFB02), ("florin", 0x0192), ("four", 0x0034), ("g", 0x0067),
-    ("germandbls", 0x00DF), ("grave", 0x0060), ("greater", 0x003E), ("guilsinglleft", 0x2039),
+    ("five", 0x0035), ("fl", 0xFB02), ("florin", 0x0192), ("fraction", 0x2044), ("four", 0x0034), ("g", 0x0067),
+    ("germandbls", 0x00DF), ("grave", 0x0060), ("greater", 0x003E), ("greaterequal", 0x2265), ("guilsinglleft", 0x2039),
     ("guilsinglright", 0x203A), ("h", 0x0068), ("hyphen", 0x002D), ("i", 0x0069),
-    ("iacute", 0x00ED), ("j", 0x006A), ("k", 0x006B), ("l", 0x006C), ("less", 0x003C),
+    ("iacute", 0x00ED), ("imaginaryunit", 0x2148), ("infinity", 0x221E), ("integral", 0x222B), ("intersection", 0x2229), ("j", 0x006A), ("k", 0x006B), ("l", 0x006C), ("less", 0x003C), ("lessequal", 0x2264),
     ("m", 0x006D), ("minus", 0x2212), ("multiply", 0x00D7), ("n", 0x006E),
-    ("nbspace", 0x00A0), ("nine", 0x0039), ("ntilde", 0x00F1), ("numbersign", 0x0023),
+    ("nbspace", 0x00A0), ("nine", 0x0039), ("notequal", 0x2260), ("ntilde", 0x00F1), ("numbersign", 0x0023),
     ("o", 0x006F), ("oacute", 0x00F3), ("odieresis", 0x00F6), ("one", 0x0031),
-    ("oslash", 0x00F8), ("p", 0x0070), ("paragraph", 0x00B6), ("parenleft", 0x0028),
-    ("parenright", 0x0029), ("percent", 0x0025), ("period", 0x002E), ("periodcentered", 0x00B7),
-    ("perthousand", 0x2030), ("plus", 0x002B), ("q", 0x0071), ("question", 0x003F),
+    ("oslash", 0x00F8), ("p", 0x0070), ("paragraph", 0x00B6), ("parenleft", 0x0028), ("parenleftinferior", 0x208D),
+    ("parenright", 0x0029), ("parenrightinferior", 0x208E), ("percent", 0x0025), ("period", 0x002E), ("periodcentered", 0x00B7),
+    ("perthousand", 0x2030), ("plus", 0x002B), ("product", 0x220F), ("q", 0x0071), ("question", 0x003F),
     ("quotedbl", 0x0022), ("quotedblbase", 0x201E), ("quotedblleft", 0x201C),
     ("quotedblright", 0x201D), ("quoteleft", 0x2018), ("quoteright", 0x2019),
-    ("quotesinglbase", 0x201A), ("quotesingle", 0x0027), ("r", 0x0072), ("registered", 0x00AE),
+    ("quotesinglbase", 0x201A), ("quotesingle", 0x0027), ("r", 0x0072), ("radical", 0x221A), ("registered", 0x00AE),
     ("s", 0x0073), ("section", 0x00A7), ("semicolon", 0x003B), ("seven", 0x0037),
-    ("six", 0x0036), ("slash", 0x002F), ("space", 0x0020), ("sterling", 0x00A3),
+    ("six", 0x0036), ("slash", 0x002F), ("space", 0x0020), ("sterling", 0x00A3), ("summation", 0x2211),
     ("t", 0x0074), ("three", 0x0033), ("trademark", 0x2122), ("two", 0x0032), ("u", 0x0075),
-    ("uacute", 0x00FA), ("udieresis", 0x00FC), ("underscore", 0x005F), ("v", 0x0076),
+    ("uacute", 0x00FA), ("udieresis", 0x00FC), ("underscore", 0x005F), ("union", 0x222A), ("v", 0x0076),
     ("w", 0x0077), ("x", 0x0078), ("y", 0x0079), ("yen", 0x00A5), ("z", 0x007A),
     ("zero", 0x0030),
 ];
@@ -248,5 +248,28 @@ mod tests {
         assert_eq!(glyph_to_unicode("uni00"), None); // too short
         assert_eq!(glyph_to_unicode("uABC"), None); // too short for u-form
         assert_eq!(glyph_to_unicode("uXYZW"), None); // not hex
+    }
+
+    #[test]
+    fn math_symbols_from_agl() {
+        assert_eq!(glyph_to_unicode("lessequal"), Some('≤'));
+        assert_eq!(glyph_to_unicode("greaterequal"), Some('≥'));
+        assert_eq!(glyph_to_unicode("notequal"), Some('≠'));
+        assert_eq!(glyph_to_unicode("element"), Some('∈'));
+        assert_eq!(glyph_to_unicode("union"), Some('∪'));
+        assert_eq!(glyph_to_unicode("intersection"), Some('∩'));
+        assert_eq!(glyph_to_unicode("radical"), Some('√'));
+        assert_eq!(glyph_to_unicode("infinity"), Some('∞'));
+        assert_eq!(glyph_to_unicode("summation"), Some('∑'));
+        assert_eq!(glyph_to_unicode("product"), Some('∏'));
+        assert_eq!(glyph_to_unicode("integral"), Some('∫'));
+    }
+
+    #[test]
+    fn fraction_and_complex_symbols() {
+        assert_eq!(glyph_to_unicode("fraction"), Some('⁄'));
+        assert_eq!(glyph_to_unicode("imaginaryunit"), Some('ⅈ'));
+        assert_eq!(glyph_to_unicode("parenleftinferior"), Some('₍'));
+        assert_eq!(glyph_to_unicode("parenrightinferior"), Some('₎'));
     }
 }
