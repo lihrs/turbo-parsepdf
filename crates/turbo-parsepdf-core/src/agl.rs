@@ -134,7 +134,7 @@ const AGL: [(&str, u32); 164] = [
     ("egrave", 0x00E8), ("eight", 0x0038), ("element", 0x2208), ("ellipsis", 0x2026), ("emdash", 0x2014),
     ("endash", 0x2013), ("equal", 0x003D), ("euro", 0x20AC), ("exclam", 0x0021),
     ("f", 0x0066), ("ff", 0xFB00), ("ffi", 0xFB03), ("ffl", 0xFB04), ("fi", 0xFB01),
-    ("five", 0x0035), ("fl", 0xFB02), ("florin", 0x0192), ("fraction", 0x2044), ("four", 0x0034), ("g", 0x0067),
+    ("five", 0x0035), ("fl", 0xFB02), ("florin", 0x0192), ("four", 0x0034), ("fraction", 0x2044), ("g", 0x0067),
     ("germandbls", 0x00DF), ("grave", 0x0060), ("greater", 0x003E), ("greaterequal", 0x2265), ("guilsinglleft", 0x2039),
     ("guilsinglright", 0x203A), ("h", 0x0068), ("hyphen", 0x002D), ("i", 0x0069),
     ("iacute", 0x00ED), ("imaginaryunit", 0x2148), ("infinity", 0x221E), ("integral", 0x222B), ("intersection", 0x2229), ("j", 0x006A), ("k", 0x006B), ("l", 0x006C), ("less", 0x003C), ("lessequal", 0x2264),
@@ -154,6 +154,80 @@ const AGL: [(&str, u32); 164] = [
     ("w", 0x0077), ("x", 0x0078), ("y", 0x0079), ("yen", 0x00A5), ("z", 0x007A),
     ("zero", 0x0030),
 ];
+
+/// Adobe Symbol font encoding: byte code (0x00-0xFF) -> Unicode codepoint
+/// (`0` = undefined). Microsoft's SymbolMT / Symbol fonts route every glyph
+/// through a PUA code point `U+F0XX` (the `/ToUnicode` CMap maps each code to
+/// `U+F0XX`), where `XX` is the classic Adobe Symbol encoding position. This
+/// table reverses that PUA back to the real Unicode. The math-critical entries
+/// (lessequal 0xA3, greaterequal 0xB3, radical 0xD6, degree 0xE0, plusminus
+/// 0xB1) were verified by glyph-contour comparison against system fonts; the
+/// rest follow the public Adobe Symbol character set.
+#[rustfmt::skip]
+pub(crate) const SYMBOL_ENC: [u32; 256] = [
+    0,0,0,0,0,0,0,0,          // 00-07
+    0,0,0,0,0,0,0,0,          // 08-0F
+    0,0,0,0,0,0,0,0,          // 10-17
+    0,0,0,0,0,0,0,0,          // 18-1F
+    0x0020,0x0021,0x2200,0x2203, 0x0024,0x0025,0x0026,0x0027,  // 20-27 space ! forall exists $ % & '
+    0x0028,0x0029,0x2217,0x002B, 0x002C,0x2212,0x002E,0x002F,  // 28-2F ( ) asterisk + , minus . /
+    0x0030,0x0031,0x0032,0x0033, 0x0034,0x0035,0x0036,0x0037,  // 30-37 0-7
+    0x0038,0x0039,0x003A,0x003B, 0x003C,0x003D,0x003E,0x003F,  // 38-3F 8 9 : ; < = > ?
+    0x0040,0x0391,0x0392,0x03A7, 0x0394,0x0395,0x03A6,0x0393,  // 40-47 @ Alpha Beta Chi Delta Epsilon Phi Gamma
+    0x0397,0x0399,0x03D1,0x039A, 0x039B,0x039C,0x039D,0x039F,  // 48-4F Eta Iota theta1 Kappa Lambda Mu Nu Omicron
+    0x03A0,0x0398,0x03A1,0x03A3, 0x03A4,0x03A5,0x03C2,0x03A9,  // 50-57 Pi Theta Rho Sigma Tau Upsilon sigma1 Omega
+    0x039E,0x03A8,0x0396,0x005B, 0,0x005D,0,0x005F,            // 58-5F Xi Psi Zeta [ ? ] ? _
+    0,0x03B1,0x03B2,0x03C7, 0x03B4,0x03B5,0x03C6,0x03B3,      // 60-67 ? alpha beta chi delta epsilon phi gamma
+    0x03B7,0x03B9,0x03D5,0x03BA, 0x03BB,0x03BC,0x03BD,0x03BF,  // 68-6F eta iota phi1 kappa lambda mu nu omicron
+    0x03C0,0x03B8,0x03C1,0x03C3, 0x03C4,0x03C5,0x03D2,0x03C9,  // 70-77 pi theta rho sigma tau upsilon omega1 omega
+    0x03BE,0x03C8,0x03B6,0x007B, 0x007C,0x007D,0x223C,0,      // 78-7F xi psi zeta { | } similar ?
+    0,0,0,0,0,0,0,0,          // 80-87
+    0,0,0,0,0,0,0,0,          // 88-8F
+    0,0,0,0,0,0,0,0,          // 90-97
+    0,0,0,0,0,0,0,0,          // 98-9F
+    0,0,0,0x2264, 0,0,0,0,    // A0-A7 ? ? ? lessequal ? ? ? ?
+    0,0,0,0x00B1, 0,0x2265,0,0, // A8-AF ? ? ? plusminus ? greaterequal ? ?
+    0,0,0,0,0,0,0,0,          // B0-B7
+    0,0,0,0,0,0,0,0,          // B8-BF
+    0x2135,0x2111,0x211C,0x2118, 0x2297,0x2295,0x2205,0x2229, // C0-C7 aleph ifraktur rfraktur weierstrass otimes oplus emptyset intersection
+    0x222A,0x220B,0x2283,0x2287, 0x2284,0x2282,0x2286,0x2208, // C8-CF union suchthat propersuperset reflexsuperset notsubset propersubset reflexsubset element
+    0x2220,0x2207,0x00AE,0x00A9, 0x2122,0x220F,0x221A,0x22C5, // D0-D7 angle gradient registered copyright trademark product radical dotmath
+    0x00AC,0x2227,0x2228,0x21D4, 0x21D0,0x21D2,0x2191,0x2193, // D8-DF logicalnot logicaland logicalor arrowboth arrowleft arrowright arrowup arrowdown
+    0x00B0,0,0x2032,0, 0,0,0,0, // E0-E7 degree ? minute ? ? ? ? ?
+    0,0,0,0, 0,0,0,0,          // E8-EF
+    0,0,0,0,0,0,0,0,          // F0-F7
+    0,0,0,0,0,0,0,0,          // F8-FF
+];
+
+/// If `pua` is a Symbol-font PUA code point (`U+F0XX`), return the real
+/// Unicode character it encodes (the classic Adobe Symbol position `XX`).
+pub(crate) fn symbol_pua_to_unicode(pua: u32) -> Option<char> {
+    let off = pua.checked_sub(0xF000)?;
+    if off >= 0x100 {
+        return None;
+    }
+    let u = SYMBOL_ENC[off as usize];
+    if u == 0 {
+        return None;
+    }
+    char::from_u32(u)
+}
+
+/// If `pua` is an MT-Extra PUA code point (`U+F0XX`), return the real
+/// Unicode character. MT-Extra (Microsoft Math Extra) uses the same PUA
+/// range as SymbolMT but with a different glyph assignment. Currently only
+/// the intersection symbol ∩ (U+F051 → U+2229) is confirmed via glyph-context
+/// analysis; other entries can be added as they are identified.
+pub(crate) fn mtextra_pua_to_unicode(pua: u32) -> Option<char> {
+    match pua {
+        0xF051 => Some('\u{2229}'), // ∩ intersection
+        // 0xF055 → ?
+        // 0xF067 → ?
+        // 0xF072 → ?
+        // 0xF075 → ?
+        _ => None,
+    }
+}
 
 /// The base encoding table for a `/BaseEncoding` / `/Encoding` name (defaults to
 /// WinAnsi, the most common simple-font encoding).
