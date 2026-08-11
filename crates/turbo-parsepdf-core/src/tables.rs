@@ -30,12 +30,86 @@ pub fn detect_tables(ops: &[Op], runs: &[TextRun]) -> Vec<Table> {
     build_tables(&collect_segments(ops), runs)
 }
 
-/// Build the page's tables from collected line segments and positioned runs.
+/// Return the indices of runs that fall inside any detected table cell on the
+/// page. Callers can exclude these to avoid duplicating table text in the
+/// page's reading-order lines.
+pub fn table_run_indices(ops: &[Op], runs: &[TextRun]) -> Vec<usize> {
+    let segments = collect_segments(ops);
+    let Some(grid) = build_grid(&segments) else {
+        return Vec::new();
+    };
+    // Only report indices when the table passes the validity heuristic.
+    let table = fill_table(&grid, runs);
+    if !is_valid_table(&table) {
+        return Vec::new();
+    }
+    runs.iter()
+        .enumerate()
+        .filter_map(|(i, run)| {
+            if col_of(&grid, run.x).is_some() && row_of(&grid, run.y).is_some() {
+                Some(i)
+            } else {
+                None
+            }
+        })
+        .collect()
+}
+
+/// Build the page's tables from collected line segments and positioned runs,
+/// filtering out grids that are likely decorative lines rather than real tables.
 fn build_tables(segments: &Segments, runs: &[TextRun]) -> Vec<Table> {
     match build_grid(segments) {
-        Some(grid) => vec![fill_table(&grid, runs)],
+        Some(grid) => {
+            let table = fill_table(&grid, runs);
+            if is_valid_table(&table) {
+                vec![table]
+            } else {
+                Vec::new()
+            }
+        }
         None => Vec::new(),
     }
+}
+
+/// True when a detected table looks like a real data table rather than
+/// decorative lines (form dividers, answer blanks, etc.) that happen to
+/// intersect text. A valid table needs a reasonable fraction of non-empty
+/// cells and adequate text density per cell.
+fn is_valid_table(table: &Table) -> bool {
+    if table.rows < 1 || table.cols < 1 {
+        return false;
+    }
+    let total = (table.rows * table.cols) as f64;
+    let mut non_empty = 0u32;
+    let mut total_chars = 0u32;
+    for row in &table.cells {
+        for cell in row {
+            let trimmed = cell.trim();
+            if !trimmed.is_empty() {
+                non_empty += 1;
+                total_chars += trimmed.chars().count() as u32;
+            }
+        }
+    }
+    if total == 0.0 {
+        return false;
+    }
+    let fill_ratio = non_empty as f64 / total;
+    if fill_ratio < 0.3 {
+        return false;
+    }
+    let avg_chars = total_chars as f64 / non_empty as f64;
+    // Large grids from decorative lines tend to produce cells with very few
+    // characters each; a real table has denser content.  Small tables (2×2 or
+    // fewer cells) get a lower bar because header/value tables are common.
+    let min_avg = if table.rows >= 5 && table.cols >= 3 {
+        3.0
+    } else if total <= 4.0 {
+        1.0
+    } else {
+        2.0
+    };
+    avg_chars >= min_avg
 }
 
 /// A horizontal segment at `y` spanning `x0..x1`, or vertical at `x` over `y0..y1`.
@@ -291,16 +365,86 @@ mod tests {
     fn runs_outside_grid_are_dropped() {
         let runs = vec![run("off", 999.0, 999.0)];
         let tables = detect_tables(&parse_content(GRID), &runs);
-        // Grid exists but the run lands in no cell.
-        assert!(tables[0]
-            .cells
-            .iter()
-            .all(|r| r.iter().all(String::is_empty)));
+        // Run lands in no cell → table is entirely empty → rejected by the
+        // validity heuristic.
+        assert!(tables.is_empty());
     }
 
     #[test]
     fn q_without_stack_is_safe() {
         // A stray Q (empty stack) must not panic.
         detect_tables(&parse_content(b"Q 0 0 10 10 re S"), &[]);
+    }
+
+    #[test]
+    fn sparse_decorative_grid_is_rejected() {
+        // Many grid lines (7×5) but virtually no text — typical of decorative
+        // lines or form dividers. The fill ratio is too low, so no table is
+        // returned.
+        let content = b"0 0 10 10 re 10 0 10 10 re 20 0 10 10 re 30 0 10 10 re 40 0 10 10 re 50 0 10 10 re \
+                         0 10 10 10 re 10 10 10 10 re 20 10 10 10 re 30 10 10 10 re 40 10 10 10 re 50 10 10 10 re \
+                         0 20 10 10 re S";
+        let runs = vec![run("a", 5.0, 15.0), run("b", 5.0, 5.0)];
+        let tables = detect_tables(&parse_content(content), &runs);
+        assert!(tables.is_empty());
+    }
+
+    #[test]
+    fn dense_table_with_enough_text_is_accepted() {
+        // A 2×2 grid with well-populated cells should pass the heuristic.
+        let runs = vec![
+            run("Name", 10.0, 30.0),
+            run("Value", 60.0, 30.0),
+            run("Alice", 10.0, 10.0),
+            run("12345", 60.0, 10.0),
+        ];
+        let tables = detect_tables(&parse_content(GRID), &runs);
+        assert_eq!(tables.len(), 1);
+    }
+
+    #[test]
+    fn single_char_cells_in_large_grid_rejected() {
+        // Large grid where every cell has only 1-2 chars → decorative.
+        let content = b"0 0 20 20 re 20 0 20 20 re 40 0 20 20 re \
+                         0 20 20 20 re 20 20 20 20 re 40 20 20 20 re \
+                         0 40 20 20 re 20 40 20 20 re 40 40 20 20 re S";
+        let runs: Vec<TextRun> = (0..9)
+            .map(|i| {
+                run(
+                    "x",
+                    (i % 3) as f64 * 20.0 + 10.0,
+                    (2 - i / 3) as f64 * 20.0 + 10.0,
+                )
+            })
+            .collect();
+        let tables = detect_tables(&parse_content(content), &runs);
+        // 3×3 grid with 1-char cells → avg < 3.0, should be rejected.
+        assert!(tables.is_empty());
+    }
+
+    #[test]
+    fn is_valid_table_helpers() {
+        let empty = Table {
+            rows: 0,
+            cols: 0,
+            cells: vec![],
+        };
+        assert!(!is_valid_table(&empty));
+        let sparse = Table {
+            rows: 2,
+            cols: 2,
+            cells: vec![vec!["a".into(), "".into()], vec!["".into(), "".into()]],
+        };
+        // 1/4 = 0.25 < 0.3 → rejected.
+        assert!(!is_valid_table(&sparse));
+        let dense = Table {
+            rows: 2,
+            cols: 2,
+            cells: vec![
+                vec!["alpha".into(), "beta".into()],
+                vec!["gamma".into(), "delta".into()],
+            ],
+        };
+        assert!(is_valid_table(&dense));
     }
 }
