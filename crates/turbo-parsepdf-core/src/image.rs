@@ -38,6 +38,9 @@ pub struct ParsedImage {
     pub height: u32,
     pub bits_per_component: u32,
     pub color_space: String,
+    /// A browser-renderable `data:` URL (JPEG/JPEG2000 passthrough, raw→PNG,
+    /// or empty for non-viewable formats). Embedded in HTML/MD/JSON.
+    pub data_url: String,
     #[serde(skip)]
     pub data: Vec<u8>,
 }
@@ -72,15 +75,70 @@ fn image_of(r: &Resolver, name: &str, value: &Object) -> Option<ParsedImage> {
     }
     let format = classify(&s.dict);
     let data = decode_stream(&s.dict, &s.data).ok()?;
+    let width = uint(&s.dict, "Width");
+    let height = uint(&s.dict, "Height");
+    let bpc = uint_or(&s.dict, "BitsPerComponent", 8);
+    let color_space = color_space(r, &s.dict);
+    let data_url = image_data_url(format, &color_space, bpc, width, height, &data);
     Some(ParsedImage {
         name: name.to_owned(),
         format,
-        width: uint(&s.dict, "Width"),
-        height: uint(&s.dict, "Height"),
-        bits_per_component: uint_or(&s.dict, "BitsPerComponent", 8),
-        color_space: color_space(r, &s.dict),
+        width,
+        height,
+        bits_per_component: bpc,
+        color_space,
+        data_url,
         data,
     })
+}
+
+/// Build a browser-renderable `data:` URL for an image's bytes.
+fn image_data_url(
+    format: ImageFormat,
+    color_space: &str,
+    bpc: u32,
+    w: u32,
+    h: u32,
+    data: &[u8],
+) -> String {
+    match format {
+        ImageFormat::Jpeg => data_url_bytes("image/jpeg", data),
+        ImageFormat::Jpeg2000 => data_url_bytes("image/jp2", data),
+        ImageFormat::Raw => png_data_url(color_space, bpc, w, h, data),
+        ImageFormat::Ccitt | ImageFormat::Jbig2 => String::new(),
+    }
+}
+
+/// A `data:<mime>;base64,<bytes>` URL.
+fn data_url_bytes(mime: &str, data: &[u8]) -> String {
+    let mut s = String::with_capacity(mime.len() + 13 + (data.len() + 2) / 3 * 4);
+    s.push_str("data:");
+    s.push_str(mime);
+    s.push_str(";base64,");
+    s.push_str(&crate::encode::base64_encode(data));
+    s
+}
+
+/// Transcode raw samples to a PNG `data:` URL, or empty.
+fn png_data_url(color_space: &str, bpc: u32, w: u32, h: u32, data: &[u8]) -> String {
+    let (bit_depth, color_type) = match png_color_type(color_space, bpc) {
+        Some(ct) => ct,
+        None => return String::new(),
+    };
+    match crate::encode::png_encode(data, w, h, bit_depth, color_type) {
+        Some(png) => data_url_bytes("image/png", &png),
+        None => String::new(),
+    }
+}
+
+/// Map a PDF colour space + bit depth to a PNG `(bit_depth, colour_type)`.
+fn png_color_type(color_space: &str, bpc: u32) -> Option<(u8, u8)> {
+    let bpc = bpc as u8;
+    match color_space {
+        "DeviceGray" | "CalGray" if matches!(bpc, 1 | 2 | 4 | 8 | 16) => Some((bpc, 0)),
+        "DeviceRGB" | "CalRGB" if matches!(bpc, 8 | 16) => Some((bpc, 2)),
+        _ => None,
+    }
 }
 
 /// Classify the image format from the last filter in the chain.
@@ -200,8 +258,47 @@ mod tests {
         assert_eq!(jpeg.data, b"JPEGSTREAMBYTES"); // DCTDecode passthrough
         let raw_img = imgs.iter().find(|i| i.name == "Im1").unwrap();
         assert_eq!(raw_img.format, ImageFormat::Raw);
-        assert_eq!(raw_img.bits_per_component, 8); // defaulted
+        assert_eq!(raw_img.bits_per_component, 8);
         assert_eq!(raw_img.data, b"ABCD");
+        let expect_jpeg = format!(
+            "data:image/jpeg;base64,{}",
+            crate::encode::base64_encode(b"JPEGSTREAMBYTES")
+        );
+        assert_eq!(jpeg.data_url, expect_jpeg);
+        let png = crate::encode::png_encode(b"ABCD", 2, 2, 8, 0).unwrap();
+        let expect_raw = format!(
+            "data:image/png;base64,{}",
+            crate::encode::base64_encode(&png)
+        );
+        assert_eq!(raw_img.data_url, expect_raw);
+    }
+
+    #[test]
+    fn image_data_url_branches() {
+        assert!(image_data_url(ImageFormat::Jpeg, "DeviceRGB", 8, 1, 1, b"\xff\xd8\xff")
+            .starts_with("data:image/jpeg;base64,"));
+        assert!(image_data_url(ImageFormat::Jpeg2000, "DeviceRGB", 8, 1, 1, b"\x00\x00")
+            .starts_with("data:image/jp2;base64,"));
+        assert!(image_data_url(ImageFormat::Raw, "DeviceGray", 8, 2, 2, &[0, 1, 2, 3])
+            .starts_with("data:image/png;base64,"));
+        assert!(image_data_url(ImageFormat::Raw, "DeviceRGB", 8, 1, 1, &[10, 20, 30])
+            .starts_with("data:image/png;base64,"));
+        assert_eq!(image_data_url(ImageFormat::Raw, "ICCBased", 8, 1, 1, &[0]), "");
+        assert_eq!(image_data_url(ImageFormat::Raw, "DeviceRGB", 8, 1, 1, &[10, 20]), "");
+        assert_eq!(image_data_url(ImageFormat::Ccitt, "DeviceGray", 1, 1, 1, &[0]), "");
+        assert_eq!(image_data_url(ImageFormat::Jbig2, "DeviceGray", 1, 1, 1, &[0]), "");
+    }
+
+    #[test]
+    fn png_color_type_mapping() {
+        assert_eq!(png_color_type("DeviceGray", 8), Some((8, 0)));
+        assert_eq!(png_color_type("CalGray", 1), Some((1, 0)));
+        assert_eq!(png_color_type("DeviceRGB", 8), Some((8, 2)));
+        assert_eq!(png_color_type("CalRGB", 16), Some((16, 2)));
+        assert_eq!(png_color_type("DeviceGray", 7), None);
+        assert_eq!(png_color_type("DeviceRGB", 4), None);
+        assert_eq!(png_color_type("ICCBased", 8), None);
+        assert_eq!(png_color_type("DeviceCMYK", 8), None);
     }
 
     #[test]
@@ -241,10 +338,10 @@ mod tests {
         assert_eq!(imgs[0].color_space, "ICCBased");
         // An image with no /ColorSpace falls back to DeviceRGB.
         let im1 = "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /Length 1 >>\nstream\nZ\nendstream";
-        assert_eq!(
-            images_for(&[im0.to_string(), im1.to_string()])[1].color_space,
-            "DeviceRGB"
-        );
+        let imgs = images_for(&[im0.to_string(), im1.to_string()]);
+        assert_eq!(imgs[1].color_space, "DeviceRGB");
+        assert_eq!(imgs[0].data_url, "");
+        assert_eq!(imgs[1].data_url, "");
     }
 
     #[test]
