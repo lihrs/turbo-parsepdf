@@ -54,11 +54,21 @@ fn page_markdown(page: &PageText) -> String {
     for table in &page.tables {
         parts.push(markdown_table(table));
     }
+    parts.extend(page.images.iter().filter_map(image_markdown));
     parts
         .into_iter()
         .filter(|p| !p.is_empty())
         .collect::<Vec<_>>()
         .join("\n\n")
+}
+
+/// One image as a Markdown image node, or `None` when it has no viewable bytes.
+fn image_markdown(image: &crate::image::ParsedImage) -> Option<String> {
+    if image.data_url.is_empty() {
+        None
+    } else {
+        Some(format!("![{}]({})", image.name, image.data_url))
+    }
 }
 
 /// Render one table as a GitHub-flavoured Markdown pipe table.
@@ -99,7 +109,22 @@ fn push_page_html(s: &mut String, page: &PageText) {
     for table in &page.tables {
         push_table_html(s, table);
     }
+    for image in &page.images {
+        push_image_html(s, image);
+    }
     s.push_str("</section>\n");
+}
+
+/// Append one image as an HTML `<img>` (skipped when it has no viewable bytes).
+fn push_image_html(s: &mut String, image: &crate::image::ParsedImage) {
+    if image.data_url.is_empty() {
+        return;
+    }
+    s.push_str(&format!(
+        "<img src=\"{}\" alt=\"{}\" />\n",
+        image.data_url,
+        escape_html(&image.name)
+    ));
 }
 
 /// Append one table as an HTML `<table>`.
@@ -235,5 +260,46 @@ mod tests {
             "a&amp;b&lt;c&gt;d&quot;e&#39;f"
         );
         assert_eq!(escape_html("plain"), "plain");
+    }
+
+    #[test]
+    fn images_render_in_html_and_markdown() {
+        let viewable = crate::image::ParsedImage {
+            name: "Im0".into(),
+            format: crate::image::ImageFormat::Jpeg,
+            width: 2,
+            height: 2,
+            bits_per_component: 8,
+            color_space: "DeviceRGB".into(),
+            data_url: "data:image/jpeg;base64,AAAA".into(),
+            data: vec![],
+        };
+        let skipped = crate::image::ParsedImage {
+            name: "Im1".into(),
+            format: crate::image::ImageFormat::Ccitt,
+            width: 2,
+            height: 2,
+            bits_per_component: 1,
+            color_space: "DeviceGray".into(),
+            data_url: String::new(),
+            data: vec![],
+        };
+        let d = ExtractedDoc {
+            version: "1".into(),
+            pages: vec![PageText {
+                width: 100.0,
+                height: 100.0,
+                lines: vec![line("capt")],
+                needs_ocr: false,
+                tables: vec![],
+                images: vec![viewable, skipped],
+            }],
+        };
+        let html = d.to_html();
+        assert!(html.contains("<img src=\"data:image/jpeg;base64,AAAA\" alt=\"Im0\" />"));
+        assert!(!html.contains("Im1"));
+        let md = d.to_markdown();
+        assert!(md.contains("![Im0](data:image/jpeg;base64,AAAA)"));
+        assert!(!md.contains("Im1"));
     }
 }
