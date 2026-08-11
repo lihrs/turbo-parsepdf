@@ -275,18 +275,38 @@ mod tests {
 
     #[test]
     fn image_data_url_branches() {
-        assert!(image_data_url(ImageFormat::Jpeg, "DeviceRGB", 8, 1, 1, b"\xff\xd8\xff")
-            .starts_with("data:image/jpeg;base64,"));
-        assert!(image_data_url(ImageFormat::Jpeg2000, "DeviceRGB", 8, 1, 1, b"\x00\x00")
-            .starts_with("data:image/jp2;base64,"));
-        assert!(image_data_url(ImageFormat::Raw, "DeviceGray", 8, 2, 2, &[0, 1, 2, 3])
-            .starts_with("data:image/png;base64,"));
-        assert!(image_data_url(ImageFormat::Raw, "DeviceRGB", 8, 1, 1, &[10, 20, 30])
-            .starts_with("data:image/png;base64,"));
-        assert_eq!(image_data_url(ImageFormat::Raw, "ICCBased", 8, 1, 1, &[0]), "");
-        assert_eq!(image_data_url(ImageFormat::Raw, "DeviceRGB", 8, 1, 1, &[10, 20]), "");
-        assert_eq!(image_data_url(ImageFormat::Ccitt, "DeviceGray", 1, 1, 1, &[0]), "");
-        assert_eq!(image_data_url(ImageFormat::Jbig2, "DeviceGray", 1, 1, 1, &[0]), "");
+        assert!(
+            image_data_url(ImageFormat::Jpeg, "DeviceRGB", 8, 1, 1, b"\xff\xd8\xff")
+                .starts_with("data:image/jpeg;base64,")
+        );
+        assert!(
+            image_data_url(ImageFormat::Jpeg2000, "DeviceRGB", 8, 1, 1, b"\x00\x00")
+                .starts_with("data:image/jp2;base64,")
+        );
+        assert!(
+            image_data_url(ImageFormat::Raw, "DeviceGray", 8, 2, 2, &[0, 1, 2, 3])
+                .starts_with("data:image/png;base64,")
+        );
+        assert!(
+            image_data_url(ImageFormat::Raw, "DeviceRGB", 8, 1, 1, &[10, 20, 30])
+                .starts_with("data:image/png;base64,")
+        );
+        assert_eq!(
+            image_data_url(ImageFormat::Raw, "ICCBased", 8, 1, 1, &[0]),
+            ""
+        );
+        assert_eq!(
+            image_data_url(ImageFormat::Raw, "DeviceRGB", 8, 1, 1, &[10, 20]),
+            ""
+        );
+        assert_eq!(
+            image_data_url(ImageFormat::Ccitt, "DeviceGray", 1, 1, 1, &[0]),
+            ""
+        );
+        assert_eq!(
+            image_data_url(ImageFormat::Jbig2, "DeviceGray", 1, 1, 1, &[0]),
+            ""
+        );
     }
 
     #[test]
