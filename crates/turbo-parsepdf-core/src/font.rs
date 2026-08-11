@@ -80,11 +80,16 @@ impl Font {
     }
 
     /// Append a code's Unicode text to `out` (ToUnicode, then simple encoding).
+    /// When the CMap maps a code to a PUA-only string (broken fonts), the simple
+    /// encoding is preferred if it produces a non-PUA character.
     fn append_text(&self, code: u32, out: &mut String) {
-        if let Some(s) = self.to_unicode.as_ref().and_then(|c| c.lookup(code)) {
-            out.push_str(&s);
-        } else if let Some(c) = self.simple_char(code) {
-            out.push(c);
+        match self.to_unicode.as_ref().and_then(|c| c.lookup(code)) {
+            Some(ref s) if use_cmap(s) => out.push_str(s),
+            _ => {
+                if let Some(c) = self.simple_char(code) {
+                    out.push(c);
+                }
+            }
         }
     }
 
@@ -118,7 +123,9 @@ impl Font {
 
     fn text_for(&self, code: u32) -> String {
         if let Some(s) = self.to_unicode.as_ref().and_then(|c| c.lookup(code)) {
-            return s;
+            if use_cmap(&s) {
+                return s;
+            }
         }
         self.simple_char(code)
             .map(|c| c.to_string())
@@ -134,6 +141,11 @@ impl Font {
             Some(cp) => char::from_u32(cp),
         }
     }
+}
+
+/// True when a CMap result is meaningful (not empty and not only PUA).
+fn use_cmap(s: &str) -> bool {
+    !s.is_empty() && !s.chars().all(is_pua)
 }
 
 /// Load every font in a page's `/Resources /Font` dictionary.
@@ -341,6 +353,11 @@ fn be(bytes: &[u8]) -> u32 {
         .fold(0u32, |acc, &b| (acc << 8) | u32::from(b))
 }
 
+/// True when a character lies in the Private Use Area (U+E000–U+F8FF).
+fn is_pua(c: char) -> bool {
+    ('\u{E000}'..='\u{F8FF}').contains(&c)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -517,5 +534,84 @@ mod tests {
         assert_eq!(f.decode(b"Hi")[0].text, "H");
         // A 2-byte CID code beyond the simple table yields no simple char.
         assert!(f.simple_char(300).is_none() || f.simple_char(300).is_some());
+    }
+
+    #[test]
+    fn cmap_pua_falls_back_to_simple_encoding() {
+        let cmap =
+            "/CIDInit begincmap 1 beginbfchar <41> <F041> endbfchar endcmap";
+        let font = "<< /Type /Font /Subtype /Type1 /ToUnicode 5 0 R >>".to_string();
+        let tu = format!(
+            "<< /Length {} >>\nstream\n{}\nendstream",
+            cmap.len(),
+            cmap
+        );
+        let fonts = fonts_for(&[font, tu], "4 0 R");
+        let f = fonts.get("F1").unwrap();
+        assert_eq!(f.decode(b"A")[0].text, "A");
+        assert_ne!(f.decode(b"A")[0].text, "\u{F041}");
+    }
+
+    #[test]
+    fn cmap_non_pua_still_takes_priority() {
+        let cmap =
+            "/CIDInit begincmap 1 beginbfchar <41> <0058> endbfchar endcmap";
+        let font = "<< /Type /Font /Subtype /Type1 /ToUnicode 5 0 R >>".to_string();
+        let tu = format!(
+            "<< /Length {} >>\nstream\n{}\nendstream",
+            cmap.len(),
+            cmap
+        );
+        let fonts = fonts_for(&[font, tu], "4 0 R");
+        let f = fonts.get("F1").unwrap();
+        assert_eq!(f.decode(b"A")[0].text, "X");
+    }
+
+    #[test]
+    fn cmap_pua_show_into_also_falls_back() {
+        let cmap =
+            "/CIDInit begincmap 1 beginbfchar <41> <F041> endbfchar endcmap";
+        let font = "<< /Type /Font /Subtype /Type1 /ToUnicode 5 0 R >>".to_string();
+        let tu = format!(
+            "<< /Length {} >>\nstream\n{}\nendstream",
+            cmap.len(),
+            cmap
+        );
+        let fonts = fonts_for(&[font, tu], "4 0 R");
+        let f = fonts.get("F1").unwrap();
+        let mut out = String::new();
+        f.show_into(b"A", 0.0, 0.0, 12.0, 1.0, &mut out);
+        assert_eq!(out, "A");
+    }
+
+    #[test]
+    fn cmap_pua_type0_no_fallback_drops_pua() {
+        let cmap =
+            "/CIDInit begincmap 1 beginbfchar <0001> <F001> endbfchar endcmap";
+        let type0 = "<< /Type /Font /Subtype /Type0 /Encoding /Identity-H /DescendantFonts [5 0 R] /ToUnicode 6 0 R >>";
+        let cidfont = "<< /Type /Font /Subtype /CIDFontType2 /DW 1000 >>";
+        let tu = format!(
+            "<< /Length {} >>\nstream\n{}\nendstream",
+            cmap.len(),
+            cmap
+        );
+        let fonts = fonts_for(&[type0.to_string(), cidfont.to_string(), tu], "4 0 R");
+        let f = fonts.get("F1").unwrap();
+        assert_eq!(f.decode(&[0x00, 0x01])[0].text, "");
+    }
+
+    #[test]
+    fn cmap_empty_destination_falls_back() {
+        let cmap =
+            "/CIDInit begincmap 1 beginbfchar <41> <> endbfchar endcmap";
+        let font = "<< /Type /Font /Subtype /Type1 /ToUnicode 5 0 R >>".to_string();
+        let tu = format!(
+            "<< /Length {} >>\nstream\n{}\nendstream",
+            cmap.len(),
+            cmap
+        );
+        let fonts = fonts_for(&[font, tu], "4 0 R");
+        let f = fonts.get("F1").unwrap();
+        assert_eq!(f.decode(b"A")[0].text, "A");
     }
 }
