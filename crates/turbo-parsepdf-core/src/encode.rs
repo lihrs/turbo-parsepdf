@@ -49,7 +49,11 @@ fn crc32_continue(state: u32, data: &[u8]) -> u32 {
     for &b in data {
         c ^= b as u32;
         for _ in 0..8 {
-            c = if c & 1 != 0 { 0xEDB8_8320 ^ (c >> 1) } else { c >> 1 };
+            c = if c & 1 != 0 {
+                0xEDB8_8320 ^ (c >> 1)
+            } else {
+                c >> 1
+            };
         }
     }
     c
@@ -171,7 +175,11 @@ pub(crate) fn png_encode(
     let rbytes = row_bytes(width, spp, bit_depth);
     let mut out = Vec::with_capacity(samples.len() + height as usize + 128);
     out.extend_from_slice(&PNG_SIG);
-    push_chunk(&mut out, b"IHDR", &ihdr_data(width, height, bit_depth, color_type));
+    push_chunk(
+        &mut out,
+        b"IHDR",
+        &ihdr_data(width, height, bit_depth, color_type),
+    );
     push_chunk(
         &mut out,
         b"IDAT",
@@ -201,7 +209,10 @@ mod tests {
         assert_eq!(crc32(b""), 0);
         assert_eq!(crc32(b"a"), 0xe8b7be43);
         assert_eq!(crc32(b"abc"), 0x352441c2);
-        assert_eq!(crc32(b"The quick brown fox jumps over the lazy dog"), 0x414fa339);
+        assert_eq!(
+            crc32(b"The quick brown fox jumps over the lazy dog"),
+            0x414fa339
+        );
     }
 
     #[test]
