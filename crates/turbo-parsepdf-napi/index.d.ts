@@ -17,8 +17,9 @@ export interface Table {
 }
 
 /**
- * An extracted image XObject's metadata (bytes are not marshaled to JS).
- * Keys are snake_case to match the JSON schema produced by `parseToJson`.
+ * An extracted image XObject. `data_url` carries the viewable bytes as a base64
+ * `data:` URL (JPEG/JPEG2000 passthrough or raw→PNG); empty for non-viewable
+ * formats. Keys are snake_case to match the JSON schema.
  */
 export interface ParsedImage {
   name: string;
@@ -27,6 +28,7 @@ export interface ParsedImage {
   height: number;
   bits_per_component: number;
   color_space: string;
+  data_url: string;
 }
 
 /** One page's reconstructed content and geometry. */
