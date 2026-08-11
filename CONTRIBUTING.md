@@ -36,6 +36,29 @@ cargo tarpaulin                                                         # 100% l
 See [`README.md`](README.md#workspace) for the crate map and [`CLAUDE.md`](CLAUDE.md)
 for the architecture, the benchmark runbook, and design rationale.
 
+## Running tests
+
+```sh
+# 运行所有markdown提取测试
+cargo test -p turbo-parsepdf-core --test markdown_extraction
+
+# 运行单个测试
+cargo test -p turbo-parsepdf-core --test markdown_extraction extract_markdown_from_123_pdf
+
+# 运行所有测试并显示输出
+cargo test -p turbo-parsepdf-core --test markdown_extraction -- --nocapture
+
+# 运行所有工作区测试
+cargo test --workspace
+
+
+# 运行测试，自动提取并保存markdown到output目录
+cargo test -p turbo-parsepdf-core --test markdown_extraction extract_markdown_from_123_pdf -- --nocapture
+```
+
+New core code needs a test that exercises every branch — see **100% line coverage**
+under **Rules** above.
+
 ## Benchmarks
 
 ```sh

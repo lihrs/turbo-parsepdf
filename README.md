@@ -108,6 +108,17 @@ await init();
 const doc = parse(new Uint8Array(buffer));
 ```
 
+**Build from source:**
+
+```sh
+rustup target add wasm32-unknown-unknown
+curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+wasm-pack build crates/turbo-parsepdf-wasm --release --target web --out-dir pkg
+```
+
+The WebAssembly build outputs to `crates/turbo-parsepdf-wasm/pkg/` ready for npm
+or direct bundler integration.
+
 ### CLI
 
 ```sh
@@ -185,6 +196,16 @@ cargo test --workspace --features turbo-parsepdf-core/encrypt
 cargo run --manifest-path tools/cc-check/Cargo.toml -- --max 5 crates   # cyclomatic complexity < 6
 cargo tarpaulin                                                          # 100% line coverage
 ```
+
+**Running tests locally:**
+
+```sh
+cargo test -p turbo-parsepdf-core                  # core tests
+cargo test --test markdown_extraction              # markdown extraction tests
+cargo test --workspace                              # all tests
+```
+
+See [`CONTRIBUTING.md`](CONTRIBUTING.md#running-tests) for full test commands.
 
 - **100% line coverage** on the core (the binding shims and the ported DEFLATE /
   crypto modules are validated functionally and excluded, as in the sibling
