@@ -20,6 +20,7 @@ pub mod cos;
 #[cfg(feature = "encrypt")]
 pub mod crypt;
 pub mod doc;
+pub(crate) mod encode;
 pub mod error;
 pub mod filter;
 pub mod font;
