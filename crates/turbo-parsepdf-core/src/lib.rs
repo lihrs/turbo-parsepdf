@@ -45,5 +45,5 @@ pub use layout::{layout_page, Line, PageText};
 pub use object::{Dictionary, ObjRef, Object, Stream};
 pub use pagetree::Page;
 pub use serialize::ExtractedDoc;
-pub use tables::Table;
+pub use tables::{table_run_indices, Table};
 pub use text::{Matrix, TextRun};
