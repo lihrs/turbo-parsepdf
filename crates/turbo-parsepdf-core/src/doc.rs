@@ -15,7 +15,7 @@ use crate::object::{Dictionary, ObjRef, Object};
 use crate::pagetree::{collect_pages, page_content, Page};
 use crate::resolver::Resolver;
 use crate::serialize::ExtractedDoc;
-use crate::tables::detect_tables;
+use crate::tables::{detect_tables, table_run_indices};
 use crate::text::{extract_runs, TextRun};
 use crate::xref::read_xref;
 
@@ -116,8 +116,24 @@ impl<'a> Document<'a> {
         let ops = parse_content(&content);
         let fonts = load_fonts(&self.resolver, &page.resources);
         let runs = extract_runs(&ops, &fonts);
-        let mut text = layout_page(&runs, page.media_box);
-        text.tables = detect_tables(&ops, &runs);
+        let tables = detect_tables(&ops, &runs);
+        // When valid tables are found, exclude the runs that fall inside table
+        // cells from the page's reading-order lines so they don't appear twice
+        // (once as lines and once as the rendered table).
+        let mut text = if tables.is_empty() {
+            layout_page(&runs, page.media_box)
+        } else {
+            let exclude: std::collections::HashSet<usize> =
+                table_run_indices(&ops, &runs).into_iter().collect();
+            let non_table: Vec<TextRun> = runs
+                .into_iter()
+                .enumerate()
+                .filter(|(i, _)| !exclude.contains(i))
+                .map(|(_, r)| r)
+                .collect();
+            layout_page(&non_table, page.media_box)
+        };
+        text.tables = tables;
         text.images = extract_images(&self.resolver, &page.resources);
         text.needs_ocr = text.lines.is_empty() && !text.images.is_empty();
         Ok(text)
